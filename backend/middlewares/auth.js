@@ -1,5 +1,4 @@
 const User = require("../models/User");
-const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 
 exports.isAuthenticatedUser = catchAsyncErrors(async (req, res, next) => {
   const { token } = req.cookies;

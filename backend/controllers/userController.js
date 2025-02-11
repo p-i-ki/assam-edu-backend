@@ -23,12 +23,12 @@ exports.register = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("Failed to create user", 500));
     }
 
-    const token = user.getJWTToken();
-
-    const userData = user.toJSON();
-    delete userData.password;
-
-    sendToken(userData,201, res);
+    res.status(200).json({
+        success: true,
+        message:"User Registered Successfully"
+    })
+    // const userData = user.toJSON();
+    // delete userData.password;
 });
 
 exports.login = catchAsyncErrors(async (req, res, next) => {
@@ -55,7 +55,7 @@ exports.login = catchAsyncErrors(async (req, res, next) => {
             message,
         });
 
-        res.status(200).json({ message: 'OTP sent to your email', userId: user.userId });
+        res.status(200).json({message: 'OTP sent to your email'});
     } catch (emailError) {
         user.otp = null;
         user.otpExpiration = null;
@@ -88,7 +88,7 @@ exports.verifyOTP = catchAsyncErrors(async (req, res, next) => {
     user.otpExpiration = null;
     await user.save();
 
-   sendToken(user, 200, res);
+    sendToken(user, 200, res);
 
     // res.status(200).json({
     //     message: 'Login successful',
