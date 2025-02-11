@@ -26,6 +26,9 @@ const Course = sequelize.define("Course", {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
+    thumbnailUrl: {
+        type: DataTypes.STRING(255),
+    }
 });
 
 Course.hasMany(Section, { as: "sections",foreignKey:'courseId', onDelete:'CASCADE'});

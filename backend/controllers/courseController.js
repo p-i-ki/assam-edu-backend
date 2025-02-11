@@ -5,6 +5,7 @@ const InstructorProfile = require("../models/InstructorProfile");
 const Section = require('../models/Section');
 const Video = require('../models/Video');
 const uploadVideo = require('../utils/uploadVideo');
+const uploadImage = require('../utils/imageUploader');
 const path = require('path');
 const {processAllResolutions} = require('../utils/videoProcessor');
 const fs = require('fs');
@@ -52,7 +53,7 @@ exports.getCourse = catchAsyncErrors(async(req, res, next) => {
 });
 
 exports.getInstructorCourses = catchAsyncErrors(async(req,res) => {
-    const {userId} = req.params;
+    const { userId } = req.user;
     const instructor = await InstructorProfile.findOne({where: { userId}});
     if(!instructor) {
         return next(new ErrorHandler("Invalid Instructor", 500));
@@ -67,7 +68,8 @@ exports.getInstructorCourses = catchAsyncErrors(async(req,res) => {
 });
 
 exports.getInstructorCourse = catchAsyncErrors(async (req, res, next) => {
-    const { userId, courseId } = req.params;
+    const { courseId } = req.params;
+    const { userId } = req.user;
 
     const instructor = await InstructorProfile.findOne({where: { userId}});
     if (!instructor) {
@@ -99,7 +101,8 @@ exports.getInstructorCourse = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.createCourse = catchAsyncErrors(async(req, res, next) => {
-        const { userId } = req.params;
+        const thumbnailUrl = req.file.path;
+        const { userId } = req.user;
         const {title, description, category, tags, price} = req.body;
         
         const instructor = await InstructorProfile.findOne({where: { userId}});
@@ -107,7 +110,7 @@ exports.createCourse = catchAsyncErrors(async(req, res, next) => {
             return next(new ErrorHandler("Invalid Instructor", 500));
         }
         
-        const course = await Course.create({title, description, category, tags, price });
+        const course = await Course.create({title, description, category, tags, price, thumbnailUrl});
         if(!course) {
             return next(new ErrorHandler("Course failed to create", 500));
         }
@@ -170,8 +173,8 @@ exports.deleteCourse = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.addSection = catchAsyncErrors(async (req, res, next) => {
-    const { userId, courseId } = req.params;
-
+    const {courseId } = req.params;
+    const { userId } = req.user;
     const { sectionName } = req.body;
 
     const instructor = await InstructorProfile.findOne({where: { userId}});
@@ -206,7 +209,8 @@ exports.addSection = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.updateSection = catchAsyncErrors(async (req, res, next) => {
-    const { userId, courseId, sectionId } = req.params;
+    const { userId } = req.user;
+    const { courseId, sectionId } = req.params;
     const { sectionName } = req.body;
 
     const instructor = await InstructorProfile.findOne({where: { userId}});
@@ -214,14 +218,14 @@ exports.updateSection = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("Invalid Instructor", 404));
     }
 
-    const courses = await instructor.getCourses({ where: { id: courseId } });
+    const courses = await instructor.getCourses({ where: { courseId } });
     const course = courses[0];
 
     if (!course) {
         return next(new ErrorHandler("Course not found or does not belong to this user", 404));
     }
 
-    const sections = await course.getSections({ where: { id: sectionId } });
+    const sections = await course.getSections({ where: { sectionId } });
     const section = sections[0];
 
     if (!section) {
@@ -240,7 +244,8 @@ exports.updateSection = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.deleteSection = catchAsyncErrors(async (req, res, next) => {
-    const { userId, courseId, sectionId } = req.params;
+    const { userId } = req.user;
+    const { courseId, sectionId } = req.params;
 
     const instructor = await InstructorProfile.findOne({where: { userId}});
     if (!instructor) {
@@ -270,8 +275,9 @@ exports.deleteSection = catchAsyncErrors(async (req, res, next) => {
     res.status(200).json({ message: "Section deleted successfully" });
 });
 
-exports.uploadVideo = catchAsyncErrors(async (req, res) => {
-    const { userId, courseId, sectionId } = req.params;
+exports.uploadVideo = catchAsyncErrors(async (req, res,next) => {
+    const { userId } = req.user;
+    const { courseId, sectionId } = req.params;
 
         const instructor = await InstructorProfile.findOne({where: { userId}});
         if (!instructor) {
@@ -339,16 +345,11 @@ exports.uploadVideo = catchAsyncErrors(async (req, res) => {
 });
 
 exports.enrollInCourse = catchAsyncErrors(async (req, res, next) => {
-    const { userId, courseId } = req.params;
-
-    // Find the user by ID
-    const user = await User.findByPk(userId);
-    if (!user) {
-        return next(new ErrorHandler("User not found", 404));
-    }
-
+    const { userId } = req.user;
+    const { courseId } = req.params;
+    const {user} = req;
     // Find the course by ID
-    const course = await Course.findByPk(courseId);
+    const course = await Course.findOne({where: {courseId}});
     if (!course) {
         return next(new ErrorHandler("Course not found", 404));
     }
@@ -369,22 +370,18 @@ exports.enrollInCourse = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.getEnrolledCourses = catchAsyncErrors(async (req, res, next) => {
-    const { userId } = req.params;
-
-    // Find the user by ID
-    const user = await User.findByPk(userId);
-    if (!user) {
-        return next(new ErrorHandler("User not found", 404));
-    }
+    const { userId } = req.user;
 
     // Find all courses the user is enrolled in
     const courses = await Course.findAll({
         include: [
             {
                 model: User,
+                attributes:[],
                 through: {
                     model: Enrollment,
                     where: { userId },
+                    attributes:[],
                 },
                 required: true, 
             },
