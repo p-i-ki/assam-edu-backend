@@ -1,12 +1,13 @@
 const { DataTypes} = require('sequelize');
 const sequelize = require("../config/index");
 const Video = require("../models/Video");
+const { v4: uuidv4 } = require('uuid');
 
 const Section = sequelize.define("Section", {
     sectionId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         primaryKey: true,
-        autoIncrement: true,
+        defaultValue: () => `SECTION-${uuidv4()}`,
     },
     sectionName: {
         type: DataTypes.STRING,

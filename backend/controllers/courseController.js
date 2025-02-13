@@ -13,6 +13,7 @@ const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const ErrorHandler = require("../utils/errorhandler");
 const Enrollment = require('../models/Enrollment');
 const Review = require('../models/Review');
+const generateCaptions = require('../utils/captionGenerator');
 
 exports.getAllCourses = catchAsyncErrors(async (req, res, next) => {
     const courses = await Course.findAll();
@@ -71,13 +72,13 @@ exports.getInstructorCourse = catchAsyncErrors(async (req, res, next) => {
     const { courseId } = req.params;
     const { userId } = req.user;
 
-    const instructor = await InstructorProfile.findOne({where: { userId}});
+    const instructor = await InstructorProfile.findOne({ where: { userId } });
     if (!instructor) {
         return next(new ErrorHandler("Invalid Instructor", 404));
     }
 
     const courses = await instructor.getCourses({
-        where: {courseId },
+        where: { courseId },
         include: [
             {
                 model: Section,
@@ -85,11 +86,21 @@ exports.getInstructorCourse = catchAsyncErrors(async (req, res, next) => {
                 include: [
                     {
                         model: Video,
-                        as: 'videos'
-                    }
-                ]
-            }
-        ]
+                        as: 'videos',
+                    },
+                ],
+            },
+            {
+                model: Review, // Include the Review model
+                as: 'Reviews', // Use alias if defined in associations
+                include: [
+                    {
+                        model: User, // Include user info if needed for reviewer details
+                        attributes: ['email'], // Select specific fields for the user
+                    },
+                ],
+            },
+        ],
     });
 
     const course = courses[0]; 
@@ -103,9 +114,11 @@ exports.getInstructorCourse = catchAsyncErrors(async (req, res, next) => {
 exports.createCourse = catchAsyncErrors(async(req, res, next) => {
         const thumbnailUrl = req.file.path;
         const { userId } = req.user;
+        console.log(userId);
         const {title, description, category, tags, price} = req.body;
         
         const instructor = await InstructorProfile.findOne({where: { userId}});
+
         if(!instructor) {
             return next(new ErrorHandler("Invalid Instructor", 500));
         }
@@ -343,6 +356,59 @@ exports.uploadVideo = catchAsyncErrors(async (req, res,next) => {
             }
         });
 });
+// exports.uploadVideo = catchAsyncErrors(async (req, res, next) => {
+//     const { userId } = req.user;
+//     const { courseId, sectionId } = req.params;
+
+//     // Validate the instructor, course, and section
+//     const instructor = await InstructorProfile.findOne({ where: { userId } });
+//     if (!instructor) return next(new ErrorHandler("Invalid Instructor", 404));
+
+//     const course = await instructor.getCourses({ where: { courseId } }).then(courses => courses[0]);
+//     if (!course) return next(new ErrorHandler("Course not found or does not belong to this user", 404));
+
+//     const section = await course.getSections({ where: { sectionId } }).then(sections => sections[0]);
+//     if (!section) return next(new ErrorHandler("Section not found in this course", 404));
+
+//     // Upload video using Multer
+//     uploadVideo.single('video')(req, res, async (err) => {
+//         if (err) return res.status(500).json({ error: err.message });
+
+//         const { title } = req.body;
+//         const videoPath = req.file.path;
+
+//         try {
+//             console.log("Video Processing Start");
+
+//             // Process video into different resolutions
+//             const processedVideoPaths = await processAllResolutions(videoPath, req.file.originalname);
+
+//             console.log("Video Uploading Start");
+
+//             // Generate captions using Whisper
+//             console.log("Auto-Captioning Start");
+//             const { data: captions, captionFileName } = await generateCaptions(videoPath);
+
+//             // Save video details to the database and associate with the section
+//             const video = await Video.create({
+//                 title,
+//                 url: JSON.stringify(processedVideoPaths), // Store URLs as JSON array
+//                 captionUrl: `/captions/${captionFileName}`, // Save the caption URL
+//             });
+//             await section.addVideo(video);
+
+//             // Optionally delete the original video file after processing
+//             fs.unlinkSync(videoPath);
+
+//             res.status(201).json({ 
+//                 message: "Video uploaded and captions generated successfully", 
+//                 video 
+//             });
+//         } catch (error) {
+//             res.status(400).json({ error: error.message });
+//         }
+//     });
+// });
 
 exports.enrollInCourse = catchAsyncErrors(async (req, res, next) => {
     const { userId } = req.user;
@@ -411,7 +477,7 @@ exports.getEnrolledCourses = catchAsyncErrors(async (req, res, next) => {
 exports.postReview = catchAsyncErrors(async (req, res, next) => {
     const { courseId } = req.params;
     const { rating, comment } = req.body;
-    const userId = req.user.id;
+    const {userId} = req.user;
 
     const course = await Course.findByPk(courseId);
     if (!course) {
@@ -428,7 +494,7 @@ exports.postReview = catchAsyncErrors(async (req, res, next) => {
     if (!review) {
         return next(new ErrorHandler("Failed to post review", 500));
     }
-    const reviewedCourse = await Course.addReview(review);
+    const reviewedCourse = await course.addReview(review);
     if(!reviewedCourse) {
         return next(new ErrorHandler("Internal Server Error",500));
     }
@@ -441,7 +507,7 @@ exports.postReview = catchAsyncErrors(async (req, res, next) => {
 exports.updateReview = catchAsyncErrors(async (req, res, next) => {
     const { courseId, reviewId } = req.params;
     const { rating, comment } = req.body;
-    const userId = req.user.id;
+    const {userId} = req.user;
 
     const review = await Review.findOne({
         where: { reviewId, courseId, userId }
@@ -468,7 +534,7 @@ exports.updateReview = catchAsyncErrors(async (req, res, next) => {
 
 exports.deleteReview = catchAsyncErrors(async (req, res, next) => {
     const { courseId, reviewId } = req.params;
-    const userId = req.user.id;
+    const {userId} = req.user;
 
     // Find the review
     const review = await Review.findOne({

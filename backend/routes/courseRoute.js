@@ -35,13 +35,12 @@ router.route('/courses/:courseId/enroll').post(isAuthenticatedUser,authorizeRole
 
 router.route('/enrolledCourses').get(isAuthenticatedUser,getEnrolledCourses);
 
-router.route('/courses/:courseId/review').post(postReview);
-// router.route('/courses/:courseId/review').post(isAuthenticatedUser,postReview);
+router.route('/courses/:courseId/review').post(isAuthenticatedUser,postReview);
 
-router.route('/courses/:courseId/updateReview').put(updateReview);
-// router.route('/courses/:courseId/updateReview').put(isAuthenticatedUser,updateReview);
+router.route('/courses/:courseId/updateReview/:reviewId').put(isAuthenticatedUser,updateReview);
 
 router.route('/courses/:courseId/deleteReview').delete(deleteReview);
-// router.route('/courses/:courseId/deleteReview').delete(isAuthenticatedUser,deleteReview);
+
+router.route('/courses/:courseId/deleteReview/:reviewId').delete(isAuthenticatedUser,deleteReview);
 
 module.exports = router;

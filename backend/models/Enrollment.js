@@ -2,27 +2,14 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../config/index');
 const User = require('../models/User');
 const Course = require('../models/Course');
+const { v4: uuidv4 } = require('uuid');
 
 const Enrollment = sequelize.define("Enrollment", {
     enrollmentId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         primaryKey: true,
-        autoIncrement: true,
+        defaultValue: () => `ENROLLMENT-${uuidv4()}`,
     },
-    progress: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 0,
-        validate: {
-            min: 0,
-            max: 100
-        }
-    },
-    status: {
-        type: DataTypes.ENUM('in-progress', 'completed', 'dropped'),
-        allowNull: false,
-        defaultValue: 'in-progress'
-    }
 }, {
     createdAt: "enrollment_date",
     updatedAt: false

@@ -6,8 +6,8 @@ const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
 
 exports.addProfile = catchAsyncErrors(async (req, res, next) => {
-
-    const { bio, profilePicture } = req.body;
+    const profilePicture = req.file.path;
+    const { bio } = req.body;
     const { user } = req; 
     const { userId } = req.user;
     // Check if the profile already exists
