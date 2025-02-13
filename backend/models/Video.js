@@ -20,6 +20,10 @@ const Video = sequelize.define('Video', {
         type: DataTypes.STRING,
         allowNull: true, 
     },
+    notes: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    }
 });
 
 module.exports = Video;

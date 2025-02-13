@@ -114,7 +114,6 @@ exports.getInstructorCourse = catchAsyncErrors(async (req, res, next) => {
 exports.createCourse = catchAsyncErrors(async(req, res, next) => {
         const thumbnailUrl = req.file.path;
         const { userId } = req.user;
-        console.log(userId);
         const {title, description, category, tags, price} = req.body;
         
         const instructor = await InstructorProfile.findOne({where: { userId}});
@@ -123,7 +122,7 @@ exports.createCourse = catchAsyncErrors(async(req, res, next) => {
             return next(new ErrorHandler("Invalid Instructor", 500));
         }
         
-        const course = await Course.create({title, description, category, tags, price, thumbnailUrl});
+        const course = await Course.create({title, description, price, thumbnailUrl});
         if(!course) {
             return next(new ErrorHandler("Course failed to create", 500));
         }
@@ -136,15 +135,16 @@ exports.createCourse = catchAsyncErrors(async(req, res, next) => {
 });
 
 exports.updateCourse = catchAsyncErrors(async (req, res, next) => {
-    const { userId, courseId } = req.params;
-    const { title, description, category, tags, price } = req.body;
+    const { userId } = req.user;
+    const {courseId } = req.params;
+    const { title, description, price } = req.body;
 
     const instructor = await InstructorProfile.findOne({where: { userId}});
     if (!instructor) {
         return next(new ErrorHandler("Invalid Instructor", 404));
     }
 
-    const courses = await instructor.getCourses({ where: { id: courseId } });
+    const courses = await instructor.getCourses({ where: { courseId } });
     const course = courses[0]; 
     if (!course) {
         return next(new ErrorHandler("Course not found or does not belong to this instructor", 404));
@@ -152,8 +152,6 @@ exports.updateCourse = catchAsyncErrors(async (req, res, next) => {
 
     course.title = title || course.title;
     course.description = description || course.description;
-    course.category = category || course.category;
-    course.tags = tags || course.tags;
     course.price = price !== undefined ? price : course.price; // Allows setting price to 0
 
     const updatedCourse = await course.save();
@@ -165,14 +163,15 @@ exports.updateCourse = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.deleteCourse = catchAsyncErrors(async (req, res, next) => {
-    const { userId, courseId } = req.params;
+    const { userId } = req.user;
+    const {courseId } = req.params;
 
     const instructor = await InstructorProfile.findOne({where: { userId}});
     if (!instructor) {
         return next(new ErrorHandler("Invalid Instructor", 404));
     }
 
-    const courses = await instructor.getCourses({ where: { id: courseId } });
+    const courses = await instructor.getCourses({ where: {courseId } });
     const course = courses[0]; 
     if (!course) {
         return next(new ErrorHandler("Course not found or does not belong to this instructor", 404));

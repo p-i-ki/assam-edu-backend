@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.route('/instructor/addProfile').post(isAuthenticatedUser,authorizeRoles("instructor"),imageUploader.single("profilePicture"),addProfile);
 
-// router.route('/instructor/updateProfile').put(isAuthenticatedUser,authorizeRoles("instructor"),updateProfile);
+router.route('/instructor/updateProfile').put(isAuthenticatedUser,authorizeRoles("instructor"),updateProfile);
 
 router.route('/instructor/:courseId/getEnrolledStudents').get(isAuthenticatedUser,authorizeRoles("instructor"),getEnrolledStudents);
 

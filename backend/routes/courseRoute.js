@@ -6,8 +6,7 @@ const {imageUploader} = require('../utils/imageUploader');
 
 const router = express.Router();
 
-router.route('/getAllCourses').get(getAllCourses);
-// router.route('/getAllCourses').get(isAuthenticatedUser,getAllCourses);
+router.route('/getAllCourses').get(isAuthenticatedUser,getAllCourses);
 
 router.route('/courses/:courseId').get(isAuthenticatedUser,getCourse);
 
@@ -17,11 +16,9 @@ router.route('/instructor/courses/:courseId').get(isAuthenticatedUser,authorizeR
 
 router.route('/instructor/createcourse').post(isAuthenticatedUser,authorizeRoles("instructor"),imageUploader.single("thumbnail"),createCourse);
 
-router.route('/instructor/:userId/courses/:courseId').put(updateCourse);
-// router.route('/instructor/courses/:courseId').put(isAuthenticatedUser,authorizeRoles("instructor"),updateCourse);
+router.route('/instructor/courses/:courseId').put(isAuthenticatedUser,authorizeRoles("instructor"),updateCourse);
 
-router.route('/instructor/:userId/courses/:courseId').delete(deleteCourse);
-// router.route('/instructor/courses/:courseId').delete(isAuthenticatedUser,authorizeRoles("instructor"),deleteCourse);
+router.route('/instructor/courses/:courseId').delete(isAuthenticatedUser,authorizeRoles("instructor"),deleteCourse);
 
 router.route('/instructor/:courseId/addSection').post(isAuthenticatedUser,authorizeRoles("instructor"),addSection);
 

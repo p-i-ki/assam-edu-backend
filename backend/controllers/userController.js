@@ -27,8 +27,7 @@ exports.register = catchAsyncErrors(async (req, res, next) => {
         success: true,
         message:"User Registered Successfully"
     })
-    // const userData = user.toJSON();
-    // delete userData.password;
+
 });
 
 exports.login = catchAsyncErrors(async (req, res, next) => {
