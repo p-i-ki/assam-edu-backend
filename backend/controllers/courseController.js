@@ -101,7 +101,12 @@ exports.getInstructorCourse = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.createCourse = catchAsyncErrors(async(req, res, next) => {
-        const thumbnailUrl = req.file.path;
+
+    const fullPath = req.file.path;
+    const relativePath = fullPath.split('uploads')[1].replace(/\\/g, '/');
+    const thumbnailUrl = uploads${relativePath};
+
+       // const thumbnailUrl = req.file.path;
         const { userId } = req.user;
         const {title, description, category, tags, price} = req.body;
         
