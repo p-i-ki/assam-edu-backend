@@ -112,26 +112,28 @@ exports.getInstructorCourse = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.createCourse = catchAsyncErrors(async(req, res, next) => {
-        const thumbnailUrl = req.file.path;
-        const { userId } = req.user;
-        const {title, description, category, tags, price} = req.body;
+    const fullPath = req.file.path;
+    const relativePath = fullPath.split('uploads')[1].replace(/\\/g, '/');
+    const thumbnailUrl = `uploads${relativePath}`;
+    const { userId } = req.user;
+    const {title, description, category, tags, price} = req.body;
         
-        const instructor = await InstructorProfile.findOne({where: { userId}});
+    const instructor = await InstructorProfile.findOne({where: { userId}});
 
-        if(!instructor) {
-            return next(new ErrorHandler("Invalid Instructor", 500));
-        }
+    if(!instructor) {
+        return next(new ErrorHandler("Invalid Instructor", 500));
+    }
         
-        const course = await Course.create({title, description, price, thumbnailUrl});
-        if(!course) {
-            return next(new ErrorHandler("Course failed to create", 500));
-        }
+    const course = await Course.create({title, description, price, thumbnailUrl});
+    if(!course) {
+        return next(new ErrorHandler("Course failed to create", 500));
+    }
 
-        const isCourseAdded = await instructor.addCourse(course);
-        if(!course) {
-            return next(new ErrorHandler("Internal Error", 500));    
-        }
-        res.status(201).json({ message: 'Course created successfully', course});
+    const isCourseAdded = await instructor.addCourse(course);
+    if(!course) {
+        return next(new ErrorHandler("Internal Error", 500));    
+    }
+    res.status(201).json({ message: 'Course created successfully', course});
 });
 
 exports.updateCourse = catchAsyncErrors(async (req, res, next) => {

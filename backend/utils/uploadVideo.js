@@ -4,7 +4,6 @@ const fs = require('fs');
 
 // Define the upload directory using an absolute path
 const uploadDir = path.resolve(__dirname, '..', 'uploads', 'videos');
-
 // Ensure the upload directory exists
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });

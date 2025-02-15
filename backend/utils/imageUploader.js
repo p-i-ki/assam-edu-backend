@@ -6,6 +6,7 @@ const ErrorHandler = require('./errorhandler');
 // Define the upload directory using an absolute path
 const uploadDir = path.resolve(__dirname, '..', 'uploads', 'images');
 
+
 // Ensure the upload directory exists
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
