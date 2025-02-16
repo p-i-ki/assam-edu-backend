@@ -44,11 +44,13 @@ router
     createCourse
   );
 
-router.route("/instructor/:userId/courses/:courseId").put(updateCourse);
-// router.route('/instructor/courses/:courseId').put(isAuthenticatedUser,authorizeRoles("instructor"),updateCourse);
+router
+  .route("/instructor/courses/:courseId")
+  .put(isAuthenticatedUser, authorizeRoles("instructor"), updateCourse);
 
-router.route("/instructor/:userId/courses/:courseId").delete(deleteCourse);
-// router.route('/instructor/courses/:courseId').delete(isAuthenticatedUser,authorizeRoles("instructor"),deleteCourse);
+router
+  .route("/instructor/courses/:courseId")
+  .delete(isAuthenticatedUser, authorizeRoles("instructor"), deleteCourse);
 
 router
   .route("/instructor/:courseId/addSection")
@@ -72,13 +74,16 @@ router
 
 router.route("/enrolledCourses").get(isAuthenticatedUser, getEnrolledCourses);
 
-router.route("/courses/:courseId/review").post(postReview);
-// router.route('/courses/:courseId/review').post(isAuthenticatedUser,postReview);
+router.route("/courses/:courseId/review").post(isAuthenticatedUser, postReview);
 
-router.route("/courses/:courseId/updateReview").put(updateReview);
-// router.route('/courses/:courseId/updateReview').put(isAuthenticatedUser,updateReview);
+router
+  .route("/courses/:courseId/updateReview/:reviewId")
+  .put(isAuthenticatedUser, updateReview);
 
 router.route("/courses/:courseId/deleteReview").delete(deleteReview);
-// router.route('/courses/:courseId/deleteReview').delete(isAuthenticatedUser,deleteReview);
+
+router
+  .route("/courses/:courseId/deleteReview/:reviewId")
+  .delete(isAuthenticatedUser, deleteReview);
 
 module.exports = router;

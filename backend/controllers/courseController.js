@@ -1,494 +1,555 @@
-const multer = require('multer');
-const Course = require('../models/Course');
-const User = require('../models/User');
+const multer = require("multer");
+const Course = require("../models/Course");
+const User = require("../models/User");
 const InstructorProfile = require("../models/InstructorProfile");
-const Section = require('../models/Section');
-const Video = require('../models/Video');
-const uploadVideo = require('../utils/uploadVideo');
-const uploadImage = require('../utils/imageUploader');
-const path = require('path');
-const {processAllResolutions} = require('../utils/videoProcessor');
-const fs = require('fs');
+const Section = require("../models/Section");
+const Video = require("../models/Video");
+const uploadVideo = require("../utils/uploadVideo");
+const uploadImage = require("../utils/imageUploader");
+const path = require("path");
+const { processAllResolutions } = require("../utils/videoProcessor");
+const fs = require("fs");
 const catchAsyncErrors = require("../middlewares/catchAsyncErrors");
 const ErrorHandler = require("../utils/errorhandler");
-const Enrollment = require('../models/Enrollment');
-const Review = require('../models/Review');
+const Enrollment = require("../models/Enrollment");
+const Review = require("../models/Review");
 
 exports.getAllCourses = catchAsyncErrors(async (req, res, next) => {
-    const courses = await Course.findAll();
+  const courses = await Course.findAll();
 
-    if (!courses || courses.length === 0) {
-        return next(new ErrorHandler('No courses found', 404));
-    }
+  if (!courses || courses.length === 0) {
+    return next(new ErrorHandler("No courses found", 404));
+  }
 
-    res.status(200).json({
-        success: true,
-        courses
-    });
+  res.status(200).json({
+    success: true,
+    courses,
+  });
 });
 
-exports.getCourse = catchAsyncErrors(async(req, res, next) => {
-    const { courseId } = req.params;
-    const course = await Course.findOne({
-        where: { courseId },
+exports.getCourse = catchAsyncErrors(async (req, res, next) => {
+  const { courseId } = req.params;
+  const course = await Course.findOne({
+    where: { courseId },
+    include: [
+      {
+        model: Section,
+        as: "sections",
         include: [
-            {
-                model: Section,
-                as: 'sections',
-                include: [
-                    {
-                        model: Video,
-                        as: 'videos'
-                    }
-                ]
-            }
-        ]
-    });
+          {
+            model: Video,
+            as: "videos",
+          },
+        ],
+      },
+    ],
+  });
 
-    if (!course) {
-        return next(new ErrorHandler("Course not found or does not belong to this instructor", 404));
-    }
+  if (!course) {
+    return next(
+      new ErrorHandler(
+        "Course not found or does not belong to this instructor",
+        404
+      )
+    );
+  }
 
-    res.status(200).json({ message: "Course retrieved successfully", course });
+  res.status(200).json({ message: "Course retrieved successfully", course });
 });
 
-exports.getInstructorCourses = catchAsyncErrors(async(req,res) => {
-    const { userId } = req.user;
-    const instructor = await InstructorProfile.findOne({where: { userId}});
-    if(!instructor) {
-        return next(new ErrorHandler("Invalid Instructor", 500));
-    }
+exports.getInstructorCourses = catchAsyncErrors(async (req, res) => {
+  const { userId } = req.user;
+  const instructor = await InstructorProfile.findOne({ where: { userId } });
+  if (!instructor) {
+    return next(new ErrorHandler("Invalid Instructor", 500));
+  }
 
-    const courses = await instructor.getCourses();
-    if(!courses) {
-        return next(new ErrorHandler("Fetching courses failed", 500));
-    }
+  const courses = await instructor.getCourses();
+  if (!courses) {
+    return next(new ErrorHandler("Fetching courses failed", 500));
+  }
 
-    res.status(200).json({message:"Courses fetches successfully",courses});
+  res.status(200).json({ message: "Courses fetches successfully", courses });
 });
 
 exports.getInstructorCourse = catchAsyncErrors(async (req, res, next) => {
-    const { courseId } = req.params;
-    const { userId } = req.user;
+  const { courseId } = req.params;
+  const { userId } = req.user;
 
-    const instructor = await InstructorProfile.findOne({where: { userId}});
-    if (!instructor) {
-        return next(new ErrorHandler("Invalid Instructor", 404));
-    }
+  const instructor = await InstructorProfile.findOne({ where: { userId } });
+  if (!instructor) {
+    return next(new ErrorHandler("Invalid Instructor", 404));
+  }
 
-    const courses = await instructor.getCourses({
-        where: {courseId },
+  const courses = await instructor.getCourses({
+    where: { courseId },
+    include: [
+      {
+        model: Section,
+        as: "sections",
         include: [
-            {
-                model: Section,
-                as: 'sections',
-                include: [
-                    {
-                        model: Video,
-                        as: 'videos'
-                    }
-                ]
-            }
-        ]
-    });
+          {
+            model: Video,
+            as: "videos",
+          },
+        ],
+      },
+    ],
+  });
 
-    const course = courses[0]; 
-    if (!course) {
-        return next(new ErrorHandler("Course not found or does not belong to this instructor", 404));
-    }
+  const course = courses[0];
+  if (!course) {
+    return next(
+      new ErrorHandler(
+        "Course not found or does not belong to this instructor",
+        404
+      )
+    );
+  }
 
-    res.status(200).json({ message: "Course retrieved successfully", course });
+  res.status(200).json({ message: "Course retrieved successfully", course });
 });
 
-exports.createCourse = catchAsyncErrors(async(req, res, next) => {
+exports.createCourse = catchAsyncErrors(async (req, res, next) => {
+  const fullPath = req.file.path;
+  const relativePath = fullPath.split("uploads")[1].replace(/\\/g, "/");
+  const thumbnailUrl = `uploads${relativePath}`;
 
-    const fullPath = req.file.path;
-    const relativePath = fullPath.split('uploads')[1].replace(/\\/g, '/');
-    const thumbnailUrl = uploads${relativePath};
+  // const thumbnailUrl = req.file.path;
+  const { userId } = req.user;
+  const { title, description, category, tags, price } = req.body;
 
-       // const thumbnailUrl = req.file.path;
-        const { userId } = req.user;
-        const {title, description, category, tags, price} = req.body;
-        
-        const instructor = await InstructorProfile.findOne({where: { userId}});
-        if(!instructor) {
-            return next(new ErrorHandler("Invalid Instructor", 500));
-        }
-        
-        const course = await Course.create({title, description, category, tags, price, thumbnailUrl});
-        if(!course) {
-            return next(new ErrorHandler("Course failed to create", 500));
-        }
+  const instructor = await InstructorProfile.findOne({ where: { userId } });
+  if (!instructor) {
+    return next(new ErrorHandler("Invalid Instructor", 500));
+  }
 
-        const isCourseAdded = await instructor.addCourse(course);
-        if(!course) {
-            return next(new ErrorHandler("Internal Error", 500));    
-        }
-        res.status(201).json({ message: 'Course created successfully', course});
+  const course = await Course.create({
+    title,
+    description,
+    category,
+    tags,
+    price,
+    thumbnailUrl,
+  });
+  if (!course) {
+    return next(new ErrorHandler("Course failed to create", 500));
+  }
+
+  const isCourseAdded = await instructor.addCourse(course);
+  if (!course) {
+    return next(new ErrorHandler("Internal Error", 500));
+  }
+  res.status(201).json({ message: "Course created successfully", course });
 });
 
 exports.updateCourse = catchAsyncErrors(async (req, res, next) => {
-    const { userId, courseId } = req.params;
-    const { title, description, category, tags, price } = req.body;
+  const { userId, courseId } = req.params;
+  const { title, description, category, tags, price } = req.body;
 
-    const instructor = await InstructorProfile.findOne({where: { userId}});
-    if (!instructor) {
-        return next(new ErrorHandler("Invalid Instructor", 404));
-    }
+  const instructor = await InstructorProfile.findOne({ where: { userId } });
+  if (!instructor) {
+    return next(new ErrorHandler("Invalid Instructor", 404));
+  }
 
-    const courses = await instructor.getCourses({ where: { id: courseId } });
-    const course = courses[0]; 
-    if (!course) {
-        return next(new ErrorHandler("Course not found or does not belong to this instructor", 404));
-    }
+  const courses = await instructor.getCourses({ where: { id: courseId } });
+  const course = courses[0];
+  if (!course) {
+    return next(
+      new ErrorHandler(
+        "Course not found or does not belong to this instructor",
+        404
+      )
+    );
+  }
 
-    course.title = title || course.title;
-    course.description = description || course.description;
-    course.category = category || course.category;
-    course.tags = tags || course.tags;
-    course.price = price !== undefined ? price : course.price; // Allows setting price to 0
+  course.title = title || course.title;
+  course.description = description || course.description;
+  course.category = category || course.category;
+  course.tags = tags || course.tags;
+  course.price = price !== undefined ? price : course.price; // Allows setting price to 0
 
-    const updatedCourse = await course.save();
-    if (!updatedCourse) {
-        return next(new ErrorHandler("Failed to update course", 500));
-    }
+  const updatedCourse = await course.save();
+  if (!updatedCourse) {
+    return next(new ErrorHandler("Failed to update course", 500));
+  }
 
-    res.status(200).json({ message: "Course updated successfully", course: updatedCourse });
+  res
+    .status(200)
+    .json({ message: "Course updated successfully", course: updatedCourse });
 });
 
 exports.deleteCourse = catchAsyncErrors(async (req, res, next) => {
-    const { userId, courseId } = req.params;
+  const { userId, courseId } = req.params;
 
-    const instructor = await InstructorProfile.findOne({where: { userId}});
-    if (!instructor) {
-        return next(new ErrorHandler("Invalid Instructor", 404));
-    }
+  const instructor = await InstructorProfile.findOne({ where: { userId } });
+  if (!instructor) {
+    return next(new ErrorHandler("Invalid Instructor", 404));
+  }
 
-    const courses = await instructor.getCourses({ where: { id: courseId } });
-    const course = courses[0]; 
-    if (!course) {
-        return next(new ErrorHandler("Course not found or does not belong to this instructor", 404));
-    }
+  const courses = await instructor.getCourses({ where: { id: courseId } });
+  const course = courses[0];
+  if (!course) {
+    return next(
+      new ErrorHandler(
+        "Course not found or does not belong to this instructor",
+        404
+      )
+    );
+  }
 
-    const deletedCourse = await course.destroy();
-    if(!deletedCourse) {
-        return next(new ErrorHandler("Failed to delete Course", 500));
-    }
-    res.status(200).json({ message: "Course deleted successfully" });
+  const deletedCourse = await course.destroy();
+  if (!deletedCourse) {
+    return next(new ErrorHandler("Failed to delete Course", 500));
+  }
+  res.status(200).json({ message: "Course deleted successfully" });
 });
 
 exports.addSection = catchAsyncErrors(async (req, res, next) => {
-    const {courseId } = req.params;
-    const { userId } = req.user;
-    const { sectionName } = req.body;
+  const { courseId } = req.params;
+  const { userId } = req.user;
+  const { sectionName } = req.body;
 
-    const instructor = await InstructorProfile.findOne({where: { userId}});
+  const instructor = await InstructorProfile.findOne({ where: { userId } });
 
-    if(!instructor) {
-        return next(new ErrorHandler("Invalid Instructor", 404));
-    }
+  if (!instructor) {
+    return next(new ErrorHandler("Invalid Instructor", 404));
+  }
 
-    const courses = await instructor.getCourses({where:{courseId}});
+  const courses = await instructor.getCourses({ where: { courseId } });
 
-    const course = courses[0];
+  const course = courses[0];
 
-    if(!course) {
-        return next(new ErrorHandler("Course not found or does not belong to this user", 404));
-    }
+  if (!course) {
+    return next(
+      new ErrorHandler("Course not found or does not belong to this user", 404)
+    );
+  }
 
-    // Create a new section
-    const section = await Section.create({
-      sectionName
-    });
+  // Create a new section
+  const section = await Section.create({
+    sectionName,
+  });
 
-    if (!section) {
-        return next(new ErrorHandler("Failed to add section", 404));
-    }
+  if (!section) {
+    return next(new ErrorHandler("Failed to add section", 404));
+  }
 
-    const isSectionAdded = await course.addSection(section);
-    if(!isSectionAdded) {
-        return next(new ErrorHandler("Internal server error",500));
-    }
-    const sections = await course.getSections();
-    res.status(201).json({ message:"Section creation successfull",instructor, course, sections });
+  const isSectionAdded = await course.addSection(section);
+  if (!isSectionAdded) {
+    return next(new ErrorHandler("Internal server error", 500));
+  }
+  const sections = await course.getSections();
+  res.status(201).json({
+    message: "Section creation successfull",
+    instructor,
+    course,
+    sections,
+  });
 });
 
 exports.updateSection = catchAsyncErrors(async (req, res, next) => {
-    const { userId } = req.user;
-    const { courseId, sectionId } = req.params;
-    const { sectionName } = req.body;
+  const { userId } = req.user;
+  const { courseId, sectionId } = req.params;
+  const { sectionName } = req.body;
 
-    const instructor = await InstructorProfile.findOne({where: { userId}});
-    if (!instructor) {
-        return next(new ErrorHandler("Invalid Instructor", 404));
-    }
+  const instructor = await InstructorProfile.findOne({ where: { userId } });
+  if (!instructor) {
+    return next(new ErrorHandler("Invalid Instructor", 404));
+  }
 
-    const courses = await instructor.getCourses({ where: { courseId } });
-    const course = courses[0];
+  const courses = await instructor.getCourses({ where: { courseId } });
+  const course = courses[0];
 
-    if (!course) {
-        return next(new ErrorHandler("Course not found or does not belong to this user", 404));
-    }
+  if (!course) {
+    return next(
+      new ErrorHandler("Course not found or does not belong to this user", 404)
+    );
+  }
 
-    const sections = await course.getSections({ where: { sectionId } });
-    const section = sections[0];
+  const sections = await course.getSections({ where: { sectionId } });
+  const section = sections[0];
 
-    if (!section) {
-        return next(new ErrorHandler("Section not found or does not belong to this course", 404));
-    }
+  if (!section) {
+    return next(
+      new ErrorHandler(
+        "Section not found or does not belong to this course",
+        404
+      )
+    );
+  }
 
-    section.sectionName = sectionName || section.sectionName;
+  section.sectionName = sectionName || section.sectionName;
 
-    const updatedSection = await section.save();
-    
-    if (!updatedSection) {
-        return next(new ErrorHandler("Failed to update section", 500));
-    }
+  const updatedSection = await section.save();
 
-    res.status(200).json({ message: "Section updated successfully", section: updatedSection });
+  if (!updatedSection) {
+    return next(new ErrorHandler("Failed to update section", 500));
+  }
+
+  res
+    .status(200)
+    .json({ message: "Section updated successfully", section: updatedSection });
 });
 
 exports.deleteSection = catchAsyncErrors(async (req, res, next) => {
-    const { userId } = req.user;
-    const { courseId, sectionId } = req.params;
+  const { userId } = req.user;
+  const { courseId, sectionId } = req.params;
 
-    const instructor = await InstructorProfile.findOne({where: { userId}});
-    if (!instructor) {
-        return next(new ErrorHandler("Invalid Instructor", 404));
-    }
+  const instructor = await InstructorProfile.findOne({ where: { userId } });
+  if (!instructor) {
+    return next(new ErrorHandler("Invalid Instructor", 404));
+  }
 
-    const courses = await instructor.getCourses({ where: { courseId } });
-    const course = courses[0];
+  const courses = await instructor.getCourses({ where: { courseId } });
+  const course = courses[0];
 
-    if (!course) {
-        return next(new ErrorHandler("Course not found or does not belong to this user", 404));
-    }
+  if (!course) {
+    return next(
+      new ErrorHandler("Course not found or does not belong to this user", 404)
+    );
+  }
 
-    const sections = await course.getSections({ where: { sectionId } });
-    const section = sections[0];
+  const sections = await course.getSections({ where: { sectionId } });
+  const section = sections[0];
 
-    if (!section) {
-        return next(new ErrorHandler("Section not found or does not belong to this course", 404));
-    }
+  if (!section) {
+    return next(
+      new ErrorHandler(
+        "Section not found or does not belong to this course",
+        404
+      )
+    );
+  }
 
-    const deletionResult = await section.destroy();
-    
-    if (!deletionResult) {
-        return next(new ErrorHandler("Failed to delete section", 500));
-    }
+  const deletionResult = await section.destroy();
 
-    res.status(200).json({ message: "Section deleted successfully" });
+  if (!deletionResult) {
+    return next(new ErrorHandler("Failed to delete section", 500));
+  }
+
+  res.status(200).json({ message: "Section deleted successfully" });
 });
 
-exports.uploadVideo = catchAsyncErrors(async (req, res,next) => {
-    const { userId } = req.user;
-    const { courseId, sectionId } = req.params;
+exports.uploadVideo = catchAsyncErrors(async (req, res, next) => {
+  const { userId } = req.user;
+  const { courseId, sectionId } = req.params;
 
-        const instructor = await InstructorProfile.findOne({where: { userId}});
-        if (!instructor) {
-            return next(new ErrorHandler("Invalid Instructor", 404));
-        }
+  const instructor = await InstructorProfile.findOne({ where: { userId } });
+  if (!instructor) {
+    return next(new ErrorHandler("Invalid Instructor", 404));
+  }
 
-        const courses = await instructor.getCourses({ where: { courseId } });
-        const course = courses[0];
-        if (!course) {
-            return next(new ErrorHandler("Course not found or does not belong to this user", 404));
-        }
+  const courses = await instructor.getCourses({ where: { courseId } });
+  const course = courses[0];
+  if (!course) {
+    return next(
+      new ErrorHandler("Course not found or does not belong to this user", 404)
+    );
+  }
 
-        const sections = await course.getSections({ where: { sectionId } });
-        const section = sections[0];
+  const sections = await course.getSections({ where: { sectionId } });
+  const section = sections[0];
 
-        if (!section) {
-            return next(new ErrorHandler("Section not found in this course", 404));
-        }
+  if (!section) {
+    return next(new ErrorHandler("Section not found in this course", 404));
+  }
 
-        // Upload video using Multer
-        uploadVideo.single('video')(req, res, async (err) => {
-            if (err instanceof multer.MulterError) {
-                return res.status(500).json({ error: err.message });
-            } else if (err) {
-                return res.status(500).json({ error: err.message });
-            }
+  // Upload video using Multer
+  uploadVideo.single("video")(req, res, async (err) => {
+    if (err instanceof multer.MulterError) {
+      return res.status(500).json({ error: err.message });
+    } else if (err) {
+      return res.status(500).json({ error: err.message });
+    }
 
-            const { title} = req.body;
-            const originalVideoPath = req.file.path;
-            const originalVideoName = req.file.originalname;
+    const { title } = req.body;
+    const originalVideoPath = req.file.path;
+    const originalVideoName = req.file.originalname;
 
-            try {
-                console.log("Video Processing start");
-                const startTime = Date.now();
+    try {
+      console.log("Video Processing start");
+      const startTime = Date.now();
 
-                // Process video into different resolutions
-                const processedVideoPaths = await processAllResolutions(originalVideoPath, originalVideoName);
+      // Process video into different resolutions
+      const processedVideoPaths = await processAllResolutions(
+        originalVideoPath,
+        originalVideoName
+      );
 
-                const processingTime = Date.now() - startTime;
-                console.log(`Video Processing completed in ${processingTime}ms`);
+      const processingTime = Date.now() - startTime;
+      console.log(`Video Processing completed in ${processingTime}ms`);
 
-                console.log("Video Uploading Start");
-                const videoStartTime = Date.now();
+      console.log("Video Uploading Start");
+      const videoStartTime = Date.now();
 
-                // Save video details to the database and associate with the section
-                const video = await Video.create({
-                    title,
-                    url: JSON.stringify(processedVideoPaths), // Store URLs as JSON array
-                });
+      // Save video details to the database and associate with the section
+      const video = await Video.create({
+        title,
+        url: JSON.stringify(processedVideoPaths), // Store URLs as JSON array
+      });
 
-                // Associate the video with the section
-                await section.addVideo(video);
+      // Associate the video with the section
+      await section.addVideo(video);
 
-                const videoSaveTime = Date.now() - videoStartTime;
-                console.log(`Video Uploading completed in ${videoSaveTime}ms`);
+      const videoSaveTime = Date.now() - videoStartTime;
+      console.log(`Video Uploading completed in ${videoSaveTime}ms`);
 
-                // Optionally delete the original video file after processing
-                fs.unlinkSync(originalVideoPath);
+      // Optionally delete the original video file after processing
+      fs.unlinkSync(originalVideoPath);
 
-                res.status(201).json({ message: "Successfully uploaded file", video });
-            } catch (error) {
-                res.status(400).json({ error: error.message });
-            }
-        });
+      res.status(201).json({ message: "Successfully uploaded file", video });
+    } catch (error) {
+      res.status(400).json({ error: error.message });
+    }
+  });
 });
 
 exports.enrollInCourse = catchAsyncErrors(async (req, res, next) => {
-    const { userId } = req.user;
-    const { courseId } = req.params;
-    const {user} = req;
-    // Find the course by ID
-    const course = await Course.findOne({where: {courseId}});
-    if (!course) {
-        return next(new ErrorHandler("Course not found", 404));
-    }
+  const { userId } = req.user;
+  const { courseId } = req.params;
+  const { user } = req;
+  // Find the course by ID
+  const course = await Course.findOne({ where: { courseId } });
+  if (!course) {
+    return next(new ErrorHandler("Course not found", 404));
+  }
 
-    // Check if the user is already enrolled in the course
-    const existingEnrollment = await Enrollment.findOne({ where: { userId, courseId } });
-    if (existingEnrollment) {
-        return next(new ErrorHandler("User is already enrolled in this course", 400));
-    }
+  // Check if the user is already enrolled in the course
+  const existingEnrollment = await Enrollment.findOne({
+    where: { userId, courseId },
+  });
+  if (existingEnrollment) {
+    return next(
+      new ErrorHandler("User is already enrolled in this course", 400)
+    );
+  }
 
-    // Enroll the user in the course using Sequelize's addCourse method
-    await user.addCourse(course, { through: { progress: 0, status: 'in-progress' } });
+  // Enroll the user in the course using Sequelize's addCourse method
+  await user.addCourse(course, {
+    through: { progress: 0, status: "in-progress" },
+  });
 
-    res.status(201).json({
-        message: "Enrolled in course successfully",
-        course
-    });
+  res.status(201).json({
+    message: "Enrolled in course successfully",
+    course,
+  });
 });
 
 exports.getEnrolledCourses = catchAsyncErrors(async (req, res, next) => {
-    const { userId } = req.user;
+  const { userId } = req.user;
 
-    // Find all courses the user is enrolled in
-    const courses = await Course.findAll({
+  // Find all courses the user is enrolled in
+  const courses = await Course.findAll({
+    include: [
+      {
+        model: User,
+        attributes: [],
+        through: {
+          model: Enrollment,
+          where: { userId },
+          attributes: [],
+        },
+        required: true,
+      },
+      {
+        model: Section,
+        as: "sections",
         include: [
-            {
-                model: User,
-                attributes:[],
-                through: {
-                    model: Enrollment,
-                    where: { userId },
-                    attributes:[],
-                },
-                required: true, 
-            },
-            {
-                model: Section,
-                as: 'sections',
-                include: [
-                    {
-                        model: Video,
-                        as: 'videos'
-                    }
-                ]
-            }
-        ]
-    });
+          {
+            model: Video,
+            as: "videos",
+          },
+        ],
+      },
+    ],
+  });
 
-    if (!courses.length) {
-        return next(new ErrorHandler("No enrolled courses found", 404));
-    }
+  if (!courses.length) {
+    return next(new ErrorHandler("No enrolled courses found", 404));
+  }
 
-    res.status(200).json({
-        message: "Enrolled courses retrieved successfully",
-        courses
-    });
+  res.status(200).json({
+    message: "Enrolled courses retrieved successfully",
+    courses,
+  });
 });
 
 exports.postReview = catchAsyncErrors(async (req, res, next) => {
-    const { courseId } = req.params;
-    const { rating, comment } = req.body;
-    const userId = req.user.id;
+  const { courseId } = req.params;
+  const { rating, comment } = req.body;
+  const userId = req.user.id;
 
-    const course = await Course.findByPk(courseId);
-    if (!course) {
-        return next(new ErrorHandler("Course not found", 404));
-    }
+  const course = await Course.findByPk(courseId);
+  if (!course) {
+    return next(new ErrorHandler("Course not found", 404));
+  }
 
-    const review = await Review.create({
-        rating,
-        comment,
-        courseId,
-        userId 
-    });
-    
-    if (!review) {
-        return next(new ErrorHandler("Failed to post review", 500));
-    }
-    const reviewedCourse = await Course.addReview(review);
-    if(!reviewedCourse) {
-        return next(new ErrorHandler("Internal Server Error",500));
-    }
-    res.status(201).json({
-        message: "Review posted successfully",
-        review
-    });
+  const review = await Review.create({
+    rating,
+    comment,
+    courseId,
+    userId,
+  });
+
+  if (!review) {
+    return next(new ErrorHandler("Failed to post review", 500));
+  }
+  const reviewedCourse = await Course.addReview(review);
+  if (!reviewedCourse) {
+    return next(new ErrorHandler("Internal Server Error", 500));
+  }
+  res.status(201).json({
+    message: "Review posted successfully",
+    review,
+  });
 });
 
 exports.updateReview = catchAsyncErrors(async (req, res, next) => {
-    const { courseId, reviewId } = req.params;
-    const { rating, comment } = req.body;
-    const userId = req.user.id;
+  const { courseId, reviewId } = req.params;
+  const { rating, comment } = req.body;
+  const userId = req.user.id;
 
-    const review = await Review.findOne({
-        where: { reviewId, courseId, userId }
-    });
+  const review = await Review.findOne({
+    where: { reviewId, courseId, userId },
+  });
 
-    if (!review) {
-        return next(new ErrorHandler("Review not found", 404));
-    }
+  if (!review) {
+    return next(new ErrorHandler("Review not found", 404));
+  }
 
-    review.rating = rating || review.rating;
-    review.comment = comment || review.comment;
+  review.rating = rating || review.rating;
+  review.comment = comment || review.comment;
 
-    const updatedReview = await review.save();
+  const updatedReview = await review.save();
 
-    if (!updatedReview) {
-        return next(new ErrorHandler("Failed to update review", 500));
-    }
+  if (!updatedReview) {
+    return next(new ErrorHandler("Failed to update review", 500));
+  }
 
-    res.status(200).json({
-        message: "Review updated successfully",
-        review: updatedReview
-    });
+  res.status(200).json({
+    message: "Review updated successfully",
+    review: updatedReview,
+  });
 });
 
 exports.deleteReview = catchAsyncErrors(async (req, res, next) => {
-    const { courseId, reviewId } = req.params;
-    const userId = req.user.id;
+  const { courseId, reviewId } = req.params;
+  const userId = req.user.id;
 
-    // Find the review
-    const review = await Review.findOne({
-        where: { reviewId, courseId, userId }
-    });
+  // Find the review
+  const review = await Review.findOne({
+    where: { reviewId, courseId, userId },
+  });
 
-    if (!review) {
-        return next(new ErrorHandler("Review not found", 404));
-    }
+  if (!review) {
+    return next(new ErrorHandler("Review not found", 404));
+  }
 
-    // Delete the review
-    await review.destroy();
+  // Delete the review
+  await review.destroy();
 
-    res.status(200).json({
-        message: "Review deleted successfully"
-    });
+  res.status(200).json({
+    message: "Review deleted successfully",
+  });
 });
-

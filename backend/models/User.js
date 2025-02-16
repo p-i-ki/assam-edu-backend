@@ -2,20 +2,19 @@ const { DataTypes } = require("sequelize");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-
+const { v4: uuidv4 } = require("uuid");
 const sequelize = require("../config/index.js");
 const InstructorProfile = require("../models/InstructorProfile.js");
 
 const User = sequelize.define("User", {
   userId: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.STRING,
     primaryKey: true,
-    autoIncrement: true,
+    defaultValue: () => `USER-${uuidv4()}`,
   },
   username: {
     type: DataTypes.STRING(50),
-    allowNull: true,
-    defaultValue: "piki",
+    allowNull: false,
   },
   email: {
     type: DataTypes.STRING(100),
@@ -29,7 +28,7 @@ const User = sequelize.define("User", {
   },
   role: {
     type: DataTypes.ENUM("student", "instructor", "admin"),
-    allowNull: true,
+    allowNull: false,
     defaultValue: "student",
   },
   otp: {

@@ -1,7 +1,7 @@
 const sequelize = require("./config/index");
 const app = require("./app");
 
-sequelize.sync().then(() => {
+sequelize.sync({ force: true }).then(() => {
   const server = app.listen(process.env.PORT, () => {
     console.log(`Server is working on http://localhost:${process.env.PORT}`);
   });

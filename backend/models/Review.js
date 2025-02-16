@@ -2,12 +2,13 @@ const { DataTypes } = require('sequelize');
 const sequelize = require("../config/index");
 const Course = require("../models/Course");
 const User = require('./User');
+const { v4: uuidv4 } = require('uuid');
 
 const Review = sequelize.define("Review", {
     reviewId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         primaryKey: true,
-        autoIncrement: true,
+        defaultValue: () => `REVIEW-${uuidv4()}`,
     },
     rating: {
         type: DataTypes.INTEGER,
@@ -26,7 +27,7 @@ const Review = sequelize.define("Review", {
 User.hasMany(Review, { foreignKey:'userId', onDelete: 'CASCADE'});
 Review.belongsTo(User, { foreignKey:'userId', onDelete: 'CASCADE'});
 
-Course.hasMany(Review, { foreignKey: 'courseId', onDelete:"CASCADE"});
+Course.hasMany(Review, { foreignKey: 'courseId', as:'Reviews', onDelete:"CASCADE"});
 Review.belongsTo(Course, { foreignKey: 'courseId', onDelete:"CASCADE"});
 
 module.exports = Review;

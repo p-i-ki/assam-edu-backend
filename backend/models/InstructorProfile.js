@@ -2,16 +2,20 @@ const { DataTypes } = require('sequelize');
 const sequelize =  require("../config/index");
 const User = require("../models/User");
 const Course = require('../models/Course.js');
+const { v4: uuidv4 } = require('uuid');
 
 const InstructorProfile = sequelize.define('InstructorProfile', {
     instructorId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         primaryKey: true,
-        autoIncrement: true,
+        defaultValue: () => `INSTRUCTORPROFILE-${uuidv4()}`,
     },
     bio: {
         type: DataTypes.TEXT,
         allowNull: false
+    },
+    qualification: {
+        type: DataTypes.STRING
     },
     profilePicture: {
         type: DataTypes.STRING

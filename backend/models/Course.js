@@ -1,12 +1,13 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/index');
 const Section = require('../models/Section');
+const { v4: uuidv4 } = require('uuid');
 
 const Course = sequelize.define("Course", {
     courseId: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
         primaryKey: true,
-        autoIncrement: true,
+        defaultValue: () => `COURSE-${uuidv4()}`,
     },
     title: {
         type: DataTypes.STRING,
@@ -15,12 +16,6 @@ const Course = sequelize.define("Course", {
     description: {
         type: DataTypes.STRING,
         allowNull: false,
-    },
-    categrory: {
-        type: DataTypes.STRING(255),
-    },
-    tags: {
-        type: DataTypes.STRING(255)
     },
     price: {
         type: DataTypes.INTEGER,

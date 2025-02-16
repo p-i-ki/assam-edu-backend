@@ -6,8 +6,8 @@ const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
 
 exports.addProfile = catchAsyncErrors(async (req, res, next) => {
-
-    const { bio, profilePicture } = req.body;
+    const profilePicture = req.file.path;
+    const { bio, qualification } = req.body;
     const { user } = req; 
     const { userId } = req.user;
     // Check if the profile already exists
@@ -21,6 +21,7 @@ exports.addProfile = catchAsyncErrors(async (req, res, next) => {
     // Create a new profile
     const profile = await InstructorProfile.create({
         bio,
+        qualification,
         profilePicture
     });
 
@@ -37,8 +38,8 @@ exports.addProfile = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
-    const { userId } = req.params;
-    const { bio, profilePicture } = req.body;
+    const { userId } = req.user;
+    const { bio, profilePicture, qualification } = req.body;
 
     const user = await User.findByPk(userId);
 
@@ -55,6 +56,7 @@ exports.updateProfile = catchAsyncErrors(async (req, res, next) => {
     // Update the profile details
     profile.bio = bio || profile.bio;
     profile.profilePicture = profilePicture || profile.profilePicture;
+    profile.qualification = qualification || profile.qualification;
 
     // Save the updated profile
     const updatedProfile = await profile.save();
