@@ -7,7 +7,7 @@ const Course = sequelize.define("Course", {
     courseId: {
         type: DataTypes.STRING,
         primaryKey: true,
-        defaultValue: () => `COURSE-${uuidv4()}`,
+        defaultValue: () => `${uuidv4()}`,
     },
     title: {
         type: DataTypes.STRING,

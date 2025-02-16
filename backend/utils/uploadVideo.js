@@ -17,7 +17,8 @@ const videoStorage = multer.diskStorage({
 
     filename: (req, file, cb) => {
         // Ensure the filename is unique by prepending the current timestamp
-        cb(null, `${Date.now()}-${file.originalname}`);
+        const sanitizedFilename = file.originalname.replace(/\s+/g, ""); // Remove all whitespace
+        cb(null, `${Date.now()}-${sanitizedFilename}`);
     }
 });
 
