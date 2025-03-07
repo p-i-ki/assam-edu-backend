@@ -6,7 +6,7 @@ const Course = require('../models/Course');
 const Enrollment = require('../models/Enrollment');
 
 exports.addProfile = catchAsyncErrors(async (req, res, next) => {
-    const profilePicture = req.file.path;
+    const profilePicture = `${req.protocol}://${req.get("host")}/uploads/images/${req.file.filename}`;  
     const { bio, qualification } = req.body;
     const { user } = req; 
     const { userId } = req.user;

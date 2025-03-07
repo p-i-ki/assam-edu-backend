@@ -6,7 +6,7 @@ const Video = sequelize.define('Video', {
     videoId: {
         type: DataTypes.STRING,
         primaryKey: true,
-        defaultValue: () => `VIDEO-${uuidv4()}`,
+        defaultValue: () => `${uuidv4()}`,
     },
     title: {
         type: DataTypes.STRING(100),

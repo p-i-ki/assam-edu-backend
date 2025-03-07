@@ -8,7 +8,7 @@ const Review = sequelize.define("Review", {
     reviewId: {
         type: DataTypes.STRING,
         primaryKey: true,
-        defaultValue: () => `REVIEW-${uuidv4()}`,
+        defaultValue: () => `${uuidv4()}`,
     },
     rating: {
         type: DataTypes.INTEGER,

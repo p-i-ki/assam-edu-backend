@@ -54,7 +54,11 @@ exports.getCourse = catchAsyncErrors(async (req, res, next) => {
     );
   }
 
-  res.status(200).json({ message: "Course retrieved successfully", course });
+  res.status(200).json({
+    success: true,
+    message: "Course retrieved successfully",
+    course,
+  });
 });
 
 exports.getInstructorCourses = catchAsyncErrors(async (req, res) => {
@@ -111,15 +115,14 @@ exports.getInstructorCourse = catchAsyncErrors(async (req, res, next) => {
 });
 
 exports.createCourse = catchAsyncErrors(async (req, res, next) => {
-  const fullPath = req.file.path;
-  const relativePath = fullPath.split("uploads")[1].replace(/\\/g, "/");
-  const thumbnailUrl = `uploads${relativePath}`;
-
-  // const thumbnailUrl = req.file.path;
+  const thumbnailUrl = `${req.protocol}://${req.get("host")}/uploads/images/${
+    req.file.filename
+  }`;
   const { userId } = req.user;
   const { title, description, category, tags, price } = req.body;
 
   const instructor = await InstructorProfile.findOne({ where: { userId } });
+
   if (!instructor) {
     return next(new ErrorHandler("Invalid Instructor", 500));
   }
@@ -127,8 +130,6 @@ exports.createCourse = catchAsyncErrors(async (req, res, next) => {
   const course = await Course.create({
     title,
     description,
-    category,
-    tags,
     price,
     thumbnailUrl,
   });
@@ -140,7 +141,11 @@ exports.createCourse = catchAsyncErrors(async (req, res, next) => {
   if (!course) {
     return next(new ErrorHandler("Internal Error", 500));
   }
-  res.status(201).json({ message: "Course created successfully", course });
+  res.status(201).json({
+    success: true,
+    message: "Course created successfully",
+    course,
+  });
 });
 
 exports.updateCourse = catchAsyncErrors(async (req, res, next) => {
@@ -383,10 +388,15 @@ exports.uploadVideo = catchAsyncErrors(async (req, res, next) => {
       console.log("Video Uploading Start");
       const videoStartTime = Date.now();
 
+      const baseUrl = `${req.protocol}://${req.get("host")}/uploads`;
+      const updatedPaths = processedVideoPaths.map((path) => {
+        return path.replace("backend/uploads", baseUrl);
+      });
+
       // Save video details to the database and associate with the section
       const video = await Video.create({
         title,
-        url: JSON.stringify(processedVideoPaths), // Store URLs as JSON array
+        url: JSON.stringify(updatedPaths),
       });
 
       // Associate the video with the section

@@ -8,7 +8,7 @@ const Enrollment = sequelize.define("Enrollment", {
     enrollmentId: {
         type: DataTypes.STRING,
         primaryKey: true,
-        defaultValue: () => `ENROLLMENT-${uuidv4()}`,
+        defaultValue: () => `${uuidv4()}`,
     },
 }, {
     createdAt: "enrollment_date",

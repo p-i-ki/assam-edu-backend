@@ -8,7 +8,7 @@ const InstructorProfile = sequelize.define('InstructorProfile', {
     instructorId: {
         type: DataTypes.STRING,
         primaryKey: true,
-        defaultValue: () => `INSTRUCTORPROFILE-${uuidv4()}`,
+        defaultValue: () => `${uuidv4()}`,
     },
     bio: {
         type: DataTypes.TEXT,

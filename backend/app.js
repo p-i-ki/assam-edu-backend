@@ -9,7 +9,7 @@ app.use(express.urlencoded({extended: true}));
 
 const errorMiddleware = require("./middlewares/error");
 
-app.use('/uploads', express.static(path.join(__dirname,'../uploads')));
+app.use('/uploads', express.static(path.join(__dirname,"uploads")));
 
 const userRoute = require('./routes/userRoute');
 app.use('/api', userRoute);

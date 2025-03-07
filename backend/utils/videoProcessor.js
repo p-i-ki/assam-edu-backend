@@ -33,13 +33,13 @@ const processVideo = (inputPath, outputPath, width, height) => {
 };
 
 const processAllResolutions = async (originalVideoPath, originalVideoName) => {
-    ensureDirectoryExists('uploads/videos/processed');
+    ensureDirectoryExists('backend/uploads/videos');
 
     // Remove the extension from the original video name
     const baseName = path.parse(originalVideoName).name.replace(/[^a-zA-Z0-9_-]/g, '');
 
     const processedVideoPaths = resolutions.map(res => 
-        `uploads/videos/processed/${Date.now()}_${baseName}_${res.suffix}.mp4`
+        `backend/uploads/videos/${Date.now()}_${baseName}_${res.suffix}.mp4`
     );
 
     await Promise.all(
