@@ -73,7 +73,11 @@ exports.getInstructorCourses = catchAsyncErrors(async (req, res) => {
     return next(new ErrorHandler("Fetching courses failed", 500));
   }
 
-  res.status(200).json({ message: "Courses fetches successfully", courses });
+  res.status(200).json({
+    success: true,
+    message: "Courses fetches successfully",
+    courses,
+  });
 });
 
 exports.getInstructorCourse = catchAsyncErrors(async (req, res, next) => {
@@ -111,7 +115,11 @@ exports.getInstructorCourse = catchAsyncErrors(async (req, res, next) => {
     );
   }
 
-  res.status(200).json({ message: "Course retrieved successfully", course });
+  res.status(200).json({
+    success: true,
+    message: "Course retrieved successfully",
+    course,
+  });
 });
 
 exports.createCourse = catchAsyncErrors(async (req, res, next) => {
@@ -246,6 +254,7 @@ exports.addSection = catchAsyncErrors(async (req, res, next) => {
   }
   const sections = await course.getSections();
   res.status(201).json({
+    success: true,
     message: "Section creation successfull",
     instructor,
     course,
@@ -408,7 +417,11 @@ exports.uploadVideo = catchAsyncErrors(async (req, res, next) => {
       // Optionally delete the original video file after processing
       fs.unlinkSync(originalVideoPath);
 
-      res.status(201).json({ message: "Successfully uploaded file", video });
+      res.status(201).json({
+        success: true,
+        message: "Successfully uploaded file",
+        video,
+      });
     } catch (error) {
       res.status(400).json({ error: error.message });
     }

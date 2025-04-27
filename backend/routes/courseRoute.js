@@ -74,6 +74,7 @@ router
 
 router.route("/enrolledCourses").get(isAuthenticatedUser, getEnrolledCourses);
 
+// Review Sections
 router.route("/courses/:courseId/review").post(isAuthenticatedUser, postReview);
 
 router
